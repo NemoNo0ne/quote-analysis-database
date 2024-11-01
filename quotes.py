@@ -34,13 +34,14 @@ try:
     page = 1
     max_pages = 5
     while page <= max_pages:
+        # Формируем URL для текущей страницы
         url = f'{base_url}page/{page}/'
         response = requests.get(url)
         print("Статус-код ответа:", response.status_code)
-
+        # Проверка успешности запроса
         if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'html.parser')
-            quotes = soup.find_all('div', class_='quote')
+            soup = BeautifulSoup(response.text, 'html.parser') # Создаем объект BeautifulSoup для парсинга HTML
+            quotes = soup.find_all('div', class_='quote') # Извлекаем все блоки с цитатами
 
             for quote in quotes:
                 text = quote.select_one(".text").get_text(strip=True)
@@ -49,8 +50,9 @@ try:
                 # Проверяем, есть ли цитата уже в базе данных
                 try:
                     cursor.execute('SELECT EXISTS(SELECT 1 FROM quotes WHERE text=%s)', (text,))
-                    exists = cursor.fetchone()[0]
+                    exists = cursor.fetchone()[0] # Получаем результат запроса (True/False)
 
+                    # Добавляем цитату, если ее еще нет в базе данных
                     if not exists:
                         cursor.execute('INSERT INTO quotes (text, author) VALUES (%s, %s)', (text, author))
                         conn.commit()
@@ -59,7 +61,7 @@ try:
                         print(f'Цитата уже существует: {text}')
                 except psycopg2.Error as e:
                     print(f"Ошибка SQL при добавлении цитаты: {e}")
-                    conn.rollback()  # Откат транзакции в случае ошибки
+                    conn.rollback()  # Откат транзакции в случае ошибки, чтобы избежать нарушений данных
         else:
             print("Ошибка при запросе страницы:", response.status_code)
         page += 1
